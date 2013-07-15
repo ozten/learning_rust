@@ -21,33 +21,47 @@ fn main() {
     let u: Url = url::from_str("https://api.github.com/repositories").get();
     let mut request = uv_http_request(u);
 
-    // Problem #1 a closure with state to build on the response
-    // into a string
-    fn mk_handleEvent(rawJson:~str) -> @fn(RequestEvent) -> () {
-        return |event| {
-
-            //rawJson = rawJson + ~"huh";
-
-            match event {
-                http_client::Error(e) => {
-                    println(fmt!("Ouch... error %?", e));
-                },
-                http_client::Status(s) => {
-                    println(fmt!("Status %?", s));
-                    //let res = json::from_str(rawJson);
-                    println(fmt!("Payload! %?", rawJson));
-                },
-                http_client::Payload(p) => {
-                    let data = p.take();
-                    //rawJson +=  str::from_bytes(data);
-
-                }
-            }
-        };
-    };
-
     do request.begin |event| {
+        let mut r = "";
+        match event {
+            http_client::Error(e) => {
+                println(fmt!("Ouch... error %?", e));
+            },
+            http_client::Status(s) => {
+                println(fmt!("Status %?", s));
+                match json::from_str(r) {
+                    Ok(json) => {
+                        match json {
+                            json::Object(o) => {
+                                println("Have at it boys")
+                            }
+                            json::List(l) => {
+                                println("A list of Objects, perhaps")
+                            }
+                            _ => {
+                                println("ERROR: Unrecognized JSON format")
+                            }
+                        }
+                    }
+                    Err(e) => {
 
+                        println(fmt!("Error parsing JSON %?", e))
+                    }
+                }
+                //println(fmt!("Payload! %?", res));
+            },
+            http_client::Payload(p) => {
+                let data = p.take();
+                //rawJson.push(str::from_bytes(data));
+                //r = r + str::from_bytes(data);
+                //r.push_str(str::from_bytes(data));
+                r = r + str::from_bytes(data);
+                println(fmt!("%?\n\n", r));
+
+                // I think we need to know how many bytes and then
+                // do the JSON parsing here...
+            }
+        }
     }
 
     // Problem #2 How to output parts of JSON after parsing
