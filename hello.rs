@@ -6,13 +6,14 @@ extern mod http_client;
 use extra::json;
 use extra::net::url::Url;
 use extra::net::url;
+//use extra::serialize::{Decodable, Encodable};
+
 use std::hashmap::HashMap;
 use std::str;
-use std::result::{Result, Ok, Err};
-use std::vec;
+use std::result::{Ok, Err};
 
 use http_client::uv_http_request;
-use http_client::RequestEvent;
+use http_client::StatusCode;
 
 pub struct RepoResponse {
     rawJson: ~[~str]
@@ -21,6 +22,53 @@ pub struct RepoResponse {
 impl RepoResponse {
     fn add(&mut self, data: ~str) {
         self.rawJson.push(data)
+    }
+}
+
+/* https://github.com/huonw/isrustfastyet/blob/fce8777e289eb874a94242dbd07803248d320d12/mem/process.rs
+#[deriving(Encodable)]
+struct Repo {
+    id: uint,
+    name: ~str,
+    full_name: ~str
+}
+*/
+
+fn readJson(json: json::Json) {
+    match json {
+        json::List(l) => {
+            println(fmt!("Got %? items", l.len()));
+            //for l.consume_iter().advance |repo| {
+            for l.iter().advance |repo| {
+                println(fmt!("repo=%?\n\n", repo));
+
+
+
+                        //x.find_copy(~"name");
+                        //let d: Repo = Decodable::decode(&mut json::Decoder(json));
+                        //println(fmt!("%?\n", repo.contains_key(~"git_commits_url")));
+
+
+                    /*json::Json.Object(orepo) => {
+                        println(fmt!("%?\n", orepo.contains_key(~"git_commits_url")));
+                    }*/
+
+                /*
+                match repo {
+                    json::Object(repo) => {
+
+                    },
+                    _ => {
+                        fail!("We expected a list of objects");
+                    }
+                }*/
+            }
+
+            println("A list of Objects, perhaps")
+        }
+        _ => {
+            println("ERROR: Unrecognized JSON format")
+        }
     }
 }
 
@@ -38,32 +86,32 @@ fn main() {
             http_client::Error(e) => {
                 println(fmt!("Ouch... error %?", e));
             },
-            http_client::Status(s) => {
-                //println(fmt!("Status %?", s));
-
-                //res.rawJson.push(fmt!(" status event [%?] ", s));
-                println(fmt!("Final payload was \n=========\n%?\n===========", res.rawJson.concat()));
-
-                match json::from_str(res.rawJson.concat()) {
-                    Ok(json) => {
-                        match json {
-                            json::Object(o) => {
-                                println("Have at it boys")
+            http_client::Status(s) =>
+                match s {
+                    // TODO wait... how did I break how match works here
+                    // I should need the pattern guard.
+                    StatusOK if s == StatusOK => {
+                        println(fmt!("Status %?", s));
+                        match json::from_str(res.rawJson.concat()) {
+                            Ok(json) => {
+                                readJson(json);
                             }
-                            json::List(l) => {
-                                println("A list of Objects, perhaps")
-                            }
-                            _ => {
-                                println("ERROR: Unrecognized JSON format")
+                            Err(e) => {
+                                println(fmt!("Error parsing JSON %?", e));
+                                fail!("Can't read JSON");
                             }
                         }
                     }
-                    Err(e) => {
-
-                        println(fmt!("Error parsing JSON %?", e))
+                    StatusFound if s == StatusFound => {
+                        println(fmt!("Redirected? %?", s));
                     }
-                }
-            },
+                    StatusUnknown => {
+                        println(fmt!("hmmm status is unknown %?", s));
+                        fail!("No JSON of Repositiories");
+                    }
+                },
+
+
             http_client::Payload(p) => {
                 let data = p.take();
                 res.rawJson.push(str::from_bytes(data));
