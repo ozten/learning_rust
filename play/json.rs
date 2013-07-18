@@ -76,6 +76,17 @@ fn listObjects() {
                 _ => fail!("Expected bar property")
             };
             println(fmt!("bar = %?", baz));
+
+
+            println(fmt!("true = %?", o.contains_key(&~"biz")));
+            //let barItem = ;
+            let biz = match *o.get_copy(&~"biz") {
+                Number(abiz) => abiz,
+                _ => fail!("Expected biz property")
+            };
+            println(fmt!("biz = %?", biz));
+
+
         },
         _ => {
             fail!("Should be a list of objects, no?");
