@@ -66,15 +66,21 @@ fn listObjects() {
     Err(e) => fail!(fmt!("Error: %?", e))
   };
   println(fmt!("item = %?", l.iter().advance(|i|{
-    match i {
-        &Object(o) => {
-            println(fmt!("Object is %?", o));
+    let item:Json = copy *i;
+    match item {
+        Object(o) => {
+            println(fmt!("true = %?", o.contains_key(&~"bar")));
+            //let barItem = ;
+            let baz = match copy *o.get(&~"bar") {
+                String(abaz) => abaz,
+                _ => fail!("Expected bar property")
+            };
+            println(fmt!("bar = %?", baz));
         },
         _ => {
             fail!("Should be a list of objects, no?");
         }
     }
-    println(fmt!("i=%?", i));
     true
   })));
 
