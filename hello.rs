@@ -34,68 +34,31 @@ struct Repo {
     full_name: ~str
 }
 */
-/*
-fn handleRepo(repo: & json::Json) {
+
+fn handleRepo(repo: json::Json) {
     //println(fmt!("decoded: %?\n", json::Decoder(copy *repo).read_str(~"name")));
     match repo {
-        & Object(o) => {
+        Object(o) => {
             if (o.contains_key(& ~"name")) {
-                let foo = match o.find(& ~"name") {
-                    Some( & String(value)) =>  value,
-                    Some(_) => fail!("foo was wrong type"),
-                    None => ~"Unknown Name"
-                };*/
-                /*
-                match o.find(&~"name") {
-                    Some(& String(name)) => {
-                        println(name);
-                    },
-                    _ => {
-
-                    }
-                }*/
-                /*
+                let name = match copy *o.get(&~"name") {
+                    String(value) =>  value,
+                    _ => fail!("foo was wrong type")
+                };
+                println(fmt!("REPO NAME: %?", name));
             }
         },
         _ => fail!("Why you no Repo?")
     }
 }
-*/
+
 fn readJson(json: json::Json) {
     match json {
         json::List(l) => {
             println(fmt!("Got %? items", l.len()));
             //for l.consume_iter().advance |repo| {
-            for l.iter().advance |r| {
+            for l.iter().advance |repo| {
                 //println(fmt!("repo=%?\n\n", repo));
-                //handleRepo(repo)
-
-
-                let repo: & json::Json = r;
-                println(fmt!("repo=\n%?\n\n", repo));
-
-                match repo {
-                    &Object(o2) => {}
-                    &Number(n) => {}
-                    _ => {}
-                }
-
-
-                /*
-                match repo {
-                    & Object(o) => {
-                        let yolo = copy o;
-                        if (o.contains_key(& ~"name")) {
-                            let foo = match o.find(& ~"name") {
-                                Some( & String(value)) =>  value,
-                                Some(_) => fail!("foo was wrong type"),
-                                None => ~"Unknown Name"
-                            };
-                        }
-                    },
-                    _ => fail!("Why you no Repo?")
-                }
-*/
+                handleRepo(copy *repo);
 
 
 
