@@ -3,31 +3,50 @@ extern mod std;
 
 use std::hashmap::HashMap;
 
-use extra::json::Object;
+use extra::json::List;
 use extra::json::Number;
+use extra::json::Object;
 use extra::json::String;
 use extra::json::from_str;
 use extra::json::Json;
+use JsonError = extra::json::Error;
 
-fn main() {
+fn emptyObjectExample() {
+    let o:~HashMap<~str, Json> = match from_str("{}") {
+        Ok(Object(o)) => {
+            o
+        },
+        Ok(_) => {
+            fail!("Expected an object after parsing");
+        },
+        Err(e) => {
+            println(fmt!("ERROR: %?", e));
+            fail!("What, no parsing?");
+        }
+    };
+    let mut counter = 0;
+    for o.iter().advance() |k| {
+        counter += 1;
+    }
+    println(fmt!("0 = %?", counter));
+}
+
+fn simpleObjectWithANumber() {
     match from_str("{\"foo\": 33}") {
         Ok(Object(o)) => {
             let map: ~HashMap<~str, Json> = o;
-            println(fmt!("%?\n", map.contains_key(&~"foo")));
+            println(fmt!("true = %?\n", map.contains_key(&~"foo")));
             if (map.contains_key(&~"foo")) {
                 let foo = match map.find(&~"foo") {
                     Some( & Number(value)) =>  {
-
-                            println(fmt!("%?\n", value));
-                            //value.take_unwrap().to_str()
-                            ~"huh"
+                            value
                     },
                     Some(_) => fail!("foo was wrong type"),
-                    None => ~"Missing"
+                    None => fail!("No element")
                 };
-
+                println(fmt!("33 = %?\n", foo))
             } else {
-                println("No key foo");
+                println("No key foo")
             }
         },
         Ok(_) => {
@@ -37,5 +56,32 @@ fn main() {
             println(fmt!("ERROR: %?\n", e));
         }
     }
+}
 
+fn listObjects() {
+  let j:Result<Json,JsonError> = from_str("[{\"bar\":\"baz\", \"biz\":123}]");
+  let l:List = match j {
+    Ok(List(l)) => l,
+    Ok(_) => fail!("Expected a list at the top level"),
+    Err(e) => fail!(fmt!("Error: %?", e))
+  };
+  println(fmt!("item = %?", l.iter().advance(|i|{
+    match i {
+        &Object(o) => {
+            println(fmt!("Object is %?", o));
+        },
+        _ => {
+            fail!("Should be a list of objects, no?");
+        }
+    }
+    println(fmt!("i=%?", i));
+    true
+  })));
+
+}
+
+fn main() {
+    emptyObjectExample();
+    simpleObjectWithANumber();
+    listObjects();
 }

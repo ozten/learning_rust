@@ -4,6 +4,7 @@ extern mod http_client;
 
 
 use extra::json;
+use extra::json::{Object, List, String, Number};
 use extra::net::url::Url;
 use extra::net::url;
 //use extra::serialize::{Decodable, Encodable};
@@ -33,19 +34,69 @@ struct Repo {
     full_name: ~str
 }
 */
-
+/*
 fn handleRepo(repo: & json::Json) {
-    println(fmt!("decoded: %?\n", json::Decoder(copy *repo).read_str(~"name")));
-}
+    //println(fmt!("decoded: %?\n", json::Decoder(copy *repo).read_str(~"name")));
+    match repo {
+        & Object(o) => {
+            if (o.contains_key(& ~"name")) {
+                let foo = match o.find(& ~"name") {
+                    Some( & String(value)) =>  value,
+                    Some(_) => fail!("foo was wrong type"),
+                    None => ~"Unknown Name"
+                };*/
+                /*
+                match o.find(&~"name") {
+                    Some(& String(name)) => {
+                        println(name);
+                    },
+                    _ => {
 
+                    }
+                }*/
+                /*
+            }
+        },
+        _ => fail!("Why you no Repo?")
+    }
+}
+*/
 fn readJson(json: json::Json) {
     match json {
         json::List(l) => {
             println(fmt!("Got %? items", l.len()));
             //for l.consume_iter().advance |repo| {
-            for l.iter().advance |repo| {
-                println(fmt!("repo=%?\n\n", repo));
-                handleRepo(repo)
+            for l.iter().advance |r| {
+                //println(fmt!("repo=%?\n\n", repo));
+                //handleRepo(repo)
+
+
+                let repo: & json::Json = r;
+                println(fmt!("repo=\n%?\n\n", repo));
+
+                match repo {
+                    &Object(o2) => {}
+                    &Number(n) => {}
+                    _ => {}
+                }
+
+
+                /*
+                match repo {
+                    & Object(o) => {
+                        let yolo = copy o;
+                        if (o.contains_key(& ~"name")) {
+                            let foo = match o.find(& ~"name") {
+                                Some( & String(value)) =>  value,
+                                Some(_) => fail!("foo was wrong type"),
+                                None => ~"Unknown Name"
+                            };
+                        }
+                    },
+                    _ => fail!("Why you no Repo?")
+                }
+*/
+
 
 
                         //x.find_copy(~"name");
