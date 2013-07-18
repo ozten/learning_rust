@@ -34,6 +34,10 @@ struct Repo {
 }
 */
 
+fn handleRepo(repo: & json::Json) {
+    println(fmt!("decoded: %?\n", json::Decoder(copy *repo).read_str(~"name")));
+}
+
 fn readJson(json: json::Json) {
     match json {
         json::List(l) => {
@@ -41,7 +45,7 @@ fn readJson(json: json::Json) {
             //for l.consume_iter().advance |repo| {
             for l.iter().advance |repo| {
                 println(fmt!("repo=%?\n\n", repo));
-
+                handleRepo(repo)
 
 
                         //x.find_copy(~"name");
