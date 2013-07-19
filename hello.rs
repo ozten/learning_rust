@@ -1,5 +1,6 @@
 extern mod extra;
 extern mod http_client;
+extern mod sqlite;
 
 use extra::json;
 use extra::json::{Object, List, String, Number};
@@ -12,6 +13,8 @@ use std::result::{Ok, Err};
 
 use http_client::uv_http_request;
 use http_client::StatusCode;
+
+use sqlite::open;
 
 pub struct RepoResponse {
     rawJson: ~[~str]
@@ -26,7 +29,7 @@ impl RepoResponse {
 fn s(key:~str, j:~HashMap<~str, json::Json>) -> ~str {
     match copy *j.get(&key) {
         String(value) =>  value,
-        _ => fail!("foo was wrong type")
+        _ => fail!("foo was wrong type " + key)
     }
 }
 
@@ -40,7 +43,7 @@ fn n(key:~str, j:~HashMap<~str, json::Json>) -> float {
 fn handleRepo(repo: json::Json) {
     match repo {
         Object(o) => {
-            println(fmt!("repository_id = %?", n(~"archive_url", copy o)));
+            println(fmt!("repository_id = %?", n(~"id", copy o)));
 
             if (o.contains_key(& ~"name")) {
                 let name = match copy *o.get(&~"full_name") {
@@ -50,7 +53,7 @@ fn handleRepo(repo: json::Json) {
                 println(fmt!("repository_name %?", name));
             }
 
-            println(fmt!("archive_url = %?", s(~"archive_url", o)));
+            println(fmt!("html_url = %?", s(~"html_url", o)));
         },
         _ => fail!("Why you no Repo?")
     }
