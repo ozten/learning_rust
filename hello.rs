@@ -1,13 +1,10 @@
 extern mod extra;
 extern mod http_client;
 
-
-
 use extra::json;
 use extra::json::{Object, List, String, Number};
 use extra::net::url::Url;
 use extra::net::url;
-//use extra::serialize::{Decodable, Encodable};
 
 use std::hashmap::HashMap;
 use std::str;
@@ -26,26 +23,34 @@ impl RepoResponse {
     }
 }
 
-/* https://github.com/huonw/isrustfastyet/blob/fce8777e289eb874a94242dbd07803248d320d12/mem/process.rs
-#[deriving(Encodable)]
-struct Repo {
-    id: uint,
-    name: ~str,
-    full_name: ~str
+fn s(key:~str, j:~HashMap<~str, json::Json>) -> ~str {
+    match copy *j.get(&key) {
+        String(value) =>  value,
+        _ => fail!("foo was wrong type")
+    }
 }
-*/
+
+fn n(key:~str, j:~HashMap<~str, json::Json>) -> float {
+    match copy *j.get(&key) {
+        Number(value) =>  value,
+        _ => fail!("foo was wrong type")
+    }
+}
 
 fn handleRepo(repo: json::Json) {
-    //println(fmt!("decoded: %?\n", json::Decoder(copy *repo).read_str(~"name")));
     match repo {
         Object(o) => {
+            println(fmt!("repository_id = %?", n(~"archive_url", copy o)));
+
             if (o.contains_key(& ~"name")) {
-                let name = match copy *o.get(&~"name") {
+                let name = match copy *o.get(&~"full_name") {
                     String(value) =>  value,
                     _ => fail!("foo was wrong type")
                 };
-                println(fmt!("REPO NAME: %?", name));
+                println(fmt!("repository_name %?", name));
             }
+
+            println(fmt!("archive_url = %?", s(~"archive_url", o)));
         },
         _ => fail!("Why you no Repo?")
     }
@@ -59,29 +64,7 @@ fn readJson(json: json::Json) {
             for l.iter().advance |repo| {
                 //println(fmt!("repo=%?\n\n", repo));
                 handleRepo(copy *repo);
-
-
-
-                        //x.find_copy(~"name");
-                        //let d: Repo = Decodable::decode(&mut json::Decoder(json));
-                        //println(fmt!("%?\n", repo.contains_key(~"git_commits_url")));
-
-
-                    /*json::Json.Object(orepo) => {
-                        println(fmt!("%?\n", orepo.contains_key(~"git_commits_url")));
-                    }*/
-
-                /*
-                match repo {
-                    json::Object(repo) => {
-
-                    },
-                    _ => {
-                        fail!("We expected a list of objects");
-                    }
-                }*/
             }
-
             println("A list of Objects, perhaps")
         }
         _ => {
@@ -137,31 +120,5 @@ fn main() {
         }
     }
 
-    // Problem #2 How to output parts of JSON after parsing
-    // I think this is working...
-    match json::from_str("{\"ham\": \"bone\"}") {
-        Ok(obj) => {
-            match obj {
-                json::Object(o) => {
-                    //println(fmt!("Payload! %?", o.get(& ~"ham")))
-                }
-                _ => { println("Skipping") }
-            }
 
-        }
-        Err(e) => {
-            println("Error")
-        }
-    }
-
-    // HashMap play - One type of Json is Object which is a
-    // type over HashMap<~str, Json>
-    let mut h: HashMap<~str, ~str> = HashMap::new();
-    h.insert(~"foo", ~"bar");
-    h.get(& ~"foo");
-
-    let mut a:~[~str] = ~[];
-    a.push(~"Hello");
-    a.push(~" World");
-    //println(a.concat());
 }

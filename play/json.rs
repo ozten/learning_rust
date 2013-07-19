@@ -66,6 +66,17 @@ fn listObjects() {
     Err(e) => fail!(fmt!("Error: %?", e))
   };
   println(fmt!("item = %?", l.iter().advance(|i|{
+
+    match i {
+        &Object(ref o) => {
+          println(fmt!("Object is %?", o));
+        },
+        _ => {
+          fail!("Should be a list of objects, no?");
+        }
+    }
+
+
     let item:Json = copy *i;
     match item {
         Object(o) => {
