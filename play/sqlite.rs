@@ -23,9 +23,9 @@ fn main() {
             let cur = database.prepare("SELECT * FROM test", &None);
             match cur {
                 Ok(ref stmt) => {
-                    debug!("DEBUG Statement: %?", stmt);
+                    debug!(stmt);
                     stmt.step();
-                    debug!("DEBUG Statment: %?", stmt.get_text(0));
+                    debug!(stmt.get_text(0));
                 },
                 Err(ref e) => {println(fmt!("%?", e));}
             }
