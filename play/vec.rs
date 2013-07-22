@@ -11,5 +11,11 @@ fn main() {
         ("three", 3)
     ];
 
-
+    for a.iter().advance |tup:&(&'static str, int)| {
+        fn mkheader(key: &str, value: &int) -> ~str {
+            ~"bar"
+        }
+        //let headers = tup.map(mkheader);
+        //println(fmt!("%?", headers));
+    }
 }
