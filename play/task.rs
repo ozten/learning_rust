@@ -1,3 +1,6 @@
+// rustc task.rs
+// Works on Rust 0.7
+
 extern mod extra;
 extern mod std;
 
