@@ -24,8 +24,12 @@ rustc -L libs/rust-http-client hello.rs && ./hello
 ```
 
 ## TODO
-* Examine http headers for next url in retrieving rep JSON
+* Setup a Task based system with main running two Tasks
+  * github fetcher
+  * sqlite db writer
 * Put data into sqlite database
+  * next repo link, raw sql
+  * a row per repo
 
 
 ### Database Schema

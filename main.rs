@@ -1,4 +1,4 @@
-// rustc -L . -L libs/rust-http-client -L libs/rustsqlite/ hello.rs && RUST_LOG=hello=4 ./hello
+// rustc -L . -L libs/rust-http-client -L libs/rustsqlite/ main.rs && RUST_LOG=main=4 ./main
 
 extern mod extra;
 extern mod http_client;
