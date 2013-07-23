@@ -2,6 +2,11 @@
 
 A repo where I'm learning Rust and building a tool to analize github repositories.
 
+## Version
+Rust 0.7
+
+Repo has gone back and forth with 0.8pre, but as it gains dependencies, or rust master has breaking changes, I've tended to go back to 0.7.
+
 ## Setup
 ```
 mkdir libs
