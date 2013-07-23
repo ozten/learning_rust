@@ -6,21 +6,31 @@ A repo where I'm learning Rust and building a tool to analize github repositorie
 ```
 mkdir libs
 cd libs
+echo "Setting up http_client library"
 git clone https://github.com/mozilla-servo/rust-http-client.git
 cd rust-http-client
 ./configure
 make
+cd ..
+echo "Setting up sqlite library"
+git clone https://github.com/linuxfood/rustsqlite.git
+cd rustsqlite
+for src in cursor.rs database.rs ffi.rs pkg.rs types.rs; do\
+  rustc --lib $src; done
+cd ../../https_proxy
+npm install
+./proxy.js
 ```
 
 ## Build
 ```
-rustc -L libs/rust-http-client hello.rs && ./hello
+rustc -L . -L libs/rustsqlite -L libs/rust-http-client main.rs
 ```
 
 ## Run
 
 ```
-./hello
+RUST_LOG=main=4 ./main
 ```
 
 ## TODO
@@ -31,6 +41,10 @@ rustc -L libs/rust-http-client hello.rs && ./hello
   * next repo link, raw sql
   * a row per repo
 
+## Play
+The directory `play` is useful in that it has various sample
+code for different topics like Vectors, JSON, Tasks, etc.
+All code works with Rust 0.8pre unless noted in the first comment.
 
 ### Database Schema
 
