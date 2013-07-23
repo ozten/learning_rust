@@ -18,4 +18,19 @@ fn main() {
         //let headers = tup.map(mkheader);
         //println(fmt!("%?", headers));
     }
+
+    let b = [
+        ~[~"one", ~"uno"],
+        ~[~"two", ~"dos"],
+        ~[~"three", ~"tres"]
+    ];
+    fn mkheaderz(el:&~[~str]) -> ~str {
+        match el {
+            [eng, span] => copy (eng + ": " + span),
+            _ => {fail!("ouch");}
+        }
+    }
+
+    //let c:~[~str] =
+    b.flat_map(mkheaderz);
 }

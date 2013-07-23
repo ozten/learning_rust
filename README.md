@@ -24,13 +24,25 @@ rustc -L libs/rust-http-client hello.rs && ./hello
 ```
 
 ## TODO
-* Send User-Agent in http header
 * Examine http headers for next url in retrieving rep JSON
 * Put data into sqlite database
 
 
 ### Database Schema
+
+repository metadata (API cache)
+id
+url, next_url, date_retrieved, json
+json - Jull original JSON
+
+On startup - most recent repository metadata row
+no metadata
+url has metadata - retrieve next url
+None - start retrieving
+
 repositories
-id, full_name, html_url, metadata
+id, metadata_id, full_name, html_url
+metadata_id - foreign key into repository_metadata
 full_name - repository name account/repo
-metadata - Jull original JSON
+
+

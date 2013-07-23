@@ -1,3 +1,5 @@
+// rustc -L ../libs/rust-http-client http.rs && RUST_LOG=http=4 ./http
+
 extern mod extra;
 extern mod http_client;
 
@@ -11,9 +13,15 @@ use http_client::uv_http_request;
 use http_client::StatusCode;
 
 fn main() {
-    let u: Url = url::from_str("http://ozten.com/").get();
+    // http://developer.github.com/v3/
+    // https://api.github.com/repositories
+    // http://ozten.com/random/sample.json
+
+    let u: Url = url::from_str("http://localhost:8002/repositories").get();
     let mut options:HashMap<~str, ~str> = HashMap::new();
-    options.insert(~"User-Agent", ~"SpamBot 5000");
+    options.insert(~"User-Agent",
+                   ~"curl/7.21.4 (universal-apple-darwin11.0) libcurl/7.21.4 OpenSSL/0.9.8x zlib/1.2.5");
+    options.insert(~"Accept", ~"*/*");
     let mut request = uv_http_request(u, options);
     do request.begin |event| {
         match event {

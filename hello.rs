@@ -1,6 +1,10 @@
+// rustc -L . -L libs/rust-http-client -L libs/rustsqlite/ hello.rs && RUST_LOG=hello=4 ./hello
+
 extern mod extra;
 extern mod http_client;
 extern mod sqlite;
+
+extern mod link_header;
 
 use extra::json;
 use extra::json::{Object, List, String, Number};
@@ -16,8 +20,11 @@ use http_client::StatusCode;
 
 use sqlite::open;
 
+use link_header::*;
+
 pub struct RepoResponse {
-    rawJson: ~[~str]
+    rawJson: ~[~str],
+    inLinkField: bool
 }
 
 impl RepoResponse {
@@ -77,51 +84,76 @@ fn readJson(json: json::Json) {
 }
 
 fn main() {
-
-    // http://ozten.com/psto/
     // https://api.github.com/repositories
-    let u: Url = url::from_str("http://ozten.com/random/sample.json").get();
-    let mut request = uv_http_request(u);
+    // http://ozten.com/random/sample.json
+    let u: Url = url::from_str("https://localhost:8002/repositories").get();
+    let mut options:HashMap<~str, ~str> = HashMap::new();
 
-    let res = @mut RepoResponse{rawJson: ~[]};
+
+    options.insert(~"User-Agent",
+                   ~"curl/7.21.4 (universal-apple-darwin11.0) libcurl/7.21.4 OpenSSL/0.9.8x zlib/1.2.5");
+    options.insert(~"Accept", ~"*/*");
+    // ~"curl/7.21.4 (universal-apple-darwin11.0) libcurl/7.21.4 OpenSSL/0.9.8x zlib/1.2.5"
+
+
+    let mut request = uv_http_request(u, options);
+
+    let res = @mut RepoResponse{rawJson: ~[], inLinkField: false};
 
     do request.begin |event| {
         match event {
             http_client::Error(e) => {
                 println(fmt!("Ouch... error %?", e));
             },
-            http_client::Status(s) =>
-                match s {
-                    // TODO wait... how did I break how match works here
-                    // I should need the pattern guard.
-                    StatusOK if s == StatusOK => {
-                        println(fmt!("Status %?", s));
-                        match json::from_str(res.rawJson.concat()) {
-                            Ok(json) => {
-                                readJson(json);
-                            }
-                            Err(e) => {
-                                println(fmt!("Error parsing JSON %?", e));
-                                fail!("Can't read JSON");
-                            }
+            http_client::Status(s) => match s {
+                // TODO wait... how did I break how match works here
+                // I should need the pattern guard.
+                StatusOK if s == StatusOK => {
+                    println(fmt!("Status %?", s));
+                    match json::from_str(res.rawJson.concat()) {
+                        Ok(json) => {
+                            readJson(json);
+                        }
+                        Err(e) => {
+                            println(fmt!("Error parsing JSON %?", e));
+                            fail!("Can't read JSON");
                         }
                     }
-                    StatusFound if s == StatusFound => {
-                        println(fmt!("Redirected? %?", s));
-                    }
-                    StatusUnknown => {
-                        println(fmt!("hmmm status is unknown %?", s));
-                        fail!("No JSON of Repositiories");
-                    }
-                },
+                }
+                StatusFound if s == StatusFound => {
+                    println(fmt!("Redirected? %?", s));
+                }
+                StatusUnknown => {
+                    println(fmt!("hmmm status is unknown %?", s));
+                    fail!("No JSON of Repositiories");
+                }
+            },
+            http_client::HeaderField(field) => {
+                let hField = str::from_bytes(field.take());
+                match hField {
+                    ~"link" | ~"Link" => {
+                        res.inLinkField = true;
+                        println("We found link");
+                    },
+                    _ => ()
+                }
+            },
+            http_client::HeaderValue(field) => {
+                if (res.inLinkField) {
+                    res.inLinkField = false;
+                    let hValue = str::from_bytes(field.take());
+                    println("Queing up next page from ");
+                    let link:@~str = link_header::parse(hValue);
+                    //println(*link.replace("api.github.com", "localhost:8002"));
+                    println(link.replace("api.github.com", "localhost:8002"));
 
+                }
 
+            },
             http_client::Payload(p) => {
                 let data = p.take();
                 res.rawJson.push(str::from_bytes(data));
             }
         }
     }
-
-
 }
