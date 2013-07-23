@@ -15,8 +15,8 @@ cd ..
 echo "Setting up sqlite library"
 git clone https://github.com/linuxfood/rustsqlite.git
 cd rustsqlite
-for src in cursor.rs database.rs ffi.rs pkg.rs types.rs; do\
-  rustc --lib $src; done
+for src in pkg.rs types.rs ffi.rs cursor.rs database.rs sqlite.rc; do\
+  rustc -L . --lib $src; done
 cd ../../https_proxy
 npm install
 ./proxy.js
