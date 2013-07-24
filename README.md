@@ -29,6 +29,9 @@ npm install
 
 ## Build
 ```
+rm -Rf lib*dylib*
+for src in link_header.rs repository_metadata_slurp.rs; do\
+  rustc -L . -L libs/rustsqlite -L libs/rust-http-client --lib $src; done
 rustc -L . -L libs/rustsqlite -L libs/rust-http-client main.rs
 ```
 
