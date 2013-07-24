@@ -16,4 +16,6 @@ fn main() {
         _ => {fail!("Missing <"); }
     }
     println(s);
+    println("So we've come this far haven't we?\nHaven't we???");
+    println("So we've come this far haven't we?\nHaven't we???".replace("'", "\\'").replace("\n", ""));
 }

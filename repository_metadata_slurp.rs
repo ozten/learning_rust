@@ -83,7 +83,8 @@ fn readJson(json: json::Json) {
 
 struct TaskState {
     api_url: ~str,
-    json: ~str
+    json: ~str,
+    next_url: ~str
 }
 
 // Task
@@ -93,11 +94,14 @@ struct TaskState {
 // over with the new api_url
 fn slurp_repos(chan: &DuplexStream<~str, ~str>) {
 
-    let taskState = @mut TaskState{api_url:chan.recv().to_owned(), json: ~""};
+    let taskState = @mut TaskState{api_url:chan.recv().to_owned(),
+            json: ~"", next_url: ~""};
 
     // https://api.github.com/repositories
     // http://ozten.com/random/sample.json
-    let u: Url = url::from_str(taskState.api_url).get();
+    let u: Url = url::from_str(
+        taskState.api_url.replace("https://api.github.com", "http://localhost:8002")
+        ).get();
     let mut options:HashMap<~str, ~str> = HashMap::new();
 
 
@@ -123,7 +127,7 @@ fn slurp_repos(chan: &DuplexStream<~str, ~str>) {
                     println(fmt!("Status %?", s));
 
                     let api_url = taskState.api_url.clone();
-                    taskState.api_url = api_url;
+                    //TODO WTF? taskState.api_url = api_url;
                     taskState.json = res.rawJson.concat();
 
                     // TODO I don't need to parse Json here, actually...
@@ -163,7 +167,7 @@ fn slurp_repos(chan: &DuplexStream<~str, ~str>) {
                     let link:@~str = link_header::parse(hValue);
                     //println(*link.replace("api.github.com", "localhost:8002"));
                     // TODO add this to incoming next url
-                    taskState.api_url = link.replace("api.github.com", "localhost:8002");
+                    taskState.next_url = link.to_owned();
                 }
             },
             http_client::Payload(p) => {
@@ -174,4 +178,5 @@ fn slurp_repos(chan: &DuplexStream<~str, ~str>) {
     }
     chan.send(taskState.api_url.to_owned());
     chan.send(taskState.json.to_owned());
+    chan.send(taskState.next_url.to_owned());
 }
