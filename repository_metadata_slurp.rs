@@ -8,6 +8,8 @@ use std::hashmap::HashMap;
 use std::str;
 use std::result::{Ok, Err};
 
+
+use extra::comm::DuplexStream;
 use extra::json;
 use extra::json::{Object, List, String, Number};
 use extra::net::url::Url;
@@ -79,15 +81,22 @@ fn readJson(json: json::Json) {
     }
 }
 
+struct TaskState {
+    api_url: ~str
+}
+
 // Task
 // Given a starting https://api.github.com/repositories URL
 // This task downloads the metadata, figures out the next
 // api_url and stores these in the database. it then starts
 // over with the new api_url
-fn slurp_repos(api_url:&str) {
+fn slurp_repos(chan: &'static DuplexStream<~str, ~str>) {
+
+    let taskState = @mut TaskState{api_url:chan.recv().to_owned()};
+
     // https://api.github.com/repositories
     // http://ozten.com/random/sample.json
-    let u: Url = url::from_str(api_url).get();
+    let u: Url = url::from_str(taskState.api_url).get();
     let mut options:HashMap<~str, ~str> = HashMap::new();
 
 
@@ -111,6 +120,12 @@ fn slurp_repos(api_url:&str) {
                 // I should need the pattern guard.
                 StatusOK if s == StatusOK => {
                     println(fmt!("Status %?", s));
+
+                    let api_url = taskState.api_url.clone();
+                    chan.send(api_url);
+                    chan.send(res.rawJson.concat());
+
+                    // TODO I don't need to parse Json here, actually...
                     match json::from_str(res.rawJson.concat()) {
                         Ok(json) => {
                             readJson(json);
@@ -146,10 +161,9 @@ fn slurp_repos(api_url:&str) {
                     println("Queing up next page from ");
                     let link:@~str = link_header::parse(hValue);
                     //println(*link.replace("api.github.com", "localhost:8002"));
-                    println(link.replace("api.github.com", "localhost:8002"));
-
+                    // TODO add this to incoming next url
+                    taskState.api_url = link.replace("api.github.com", "localhost:8002");
                 }
-
             },
             http_client::Payload(p) => {
                 let data = p.take();

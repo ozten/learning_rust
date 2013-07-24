@@ -1,4 +1,7 @@
+extern mod extra;
 extern mod sqlite;
+
+use extra::comm::DuplexStream;
 
 use sqlite::open;
 use sqlite::database::Database;
@@ -32,19 +35,21 @@ fn setup(database: &Database) {
 }
 
 fn next_url(database: &Database) -> ~str {
-        let cur = database.prepare(next_repo_url, &None);
-        match cur {
-            Ok(ref stmt) => {
-                if (stmt.step() == SQLITE_DONE) {
-                    return ~"https://localhost:8002/repositories";
-                } else {
-                    return stmt.get_text(0);
-                }
-            },
-            Err(ref e) => {
-                fail!("%?", e);
+    let cur = database.prepare(next_repo_url, &None);
+    match cur {
+        Ok(ref stmt) => {
+            if (stmt.step() == SQLITE_DONE) {
+                // TODO return api.github.com url, fixup
+                // in repo fetcher side
+                return ~"https://localhost:8002/repositories";
+            } else {
+                return stmt.get_text(0);
             }
-        };
+        },
+        Err(ref e) => {
+            fail!("%?", e);
+        }
+    };
 }
 
 /*
@@ -61,7 +66,7 @@ fn insert_db() {
 }
 
 // Task
-fn init_db(start_channel:&Chan<~str>) -> () {
+fn init_db(chan:&DuplexStream<~str, ~str>) -> () {
     debug!("Database starting");
     let database = match open("github.sqlite") {
         Ok(db) => db,
@@ -70,10 +75,11 @@ fn init_db(start_channel:&Chan<~str>) -> () {
         }
     };
     setup(&database);
-    start_channel.send(
+    chan.send(next_url(&database));
+    let next_url:&str = chan.recv();
+    let json:&str = chan.recv();
 
-        next_url(
-            &database));
+    //insert_db
     //loop {
         // wait for read or writes to the database
         // execute them
