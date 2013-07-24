@@ -82,7 +82,8 @@ fn readJson(json: json::Json) {
 }
 
 struct TaskState {
-    api_url: ~str
+    api_url: ~str,
+    json: ~str
 }
 
 // Task
@@ -90,9 +91,9 @@ struct TaskState {
 // This task downloads the metadata, figures out the next
 // api_url and stores these in the database. it then starts
 // over with the new api_url
-fn slurp_repos(chan: &'static DuplexStream<~str, ~str>) {
+fn slurp_repos(chan: &DuplexStream<~str, ~str>) {
 
-    let taskState = @mut TaskState{api_url:chan.recv().to_owned()};
+    let taskState = @mut TaskState{api_url:chan.recv().to_owned(), json: ~""};
 
     // https://api.github.com/repositories
     // http://ozten.com/random/sample.json
@@ -122,8 +123,8 @@ fn slurp_repos(chan: &'static DuplexStream<~str, ~str>) {
                     println(fmt!("Status %?", s));
 
                     let api_url = taskState.api_url.clone();
-                    chan.send(api_url);
-                    chan.send(res.rawJson.concat());
+                    taskState.api_url = api_url;
+                    taskState.json = res.rawJson.concat();
 
                     // TODO I don't need to parse Json here, actually...
                     match json::from_str(res.rawJson.concat()) {
@@ -171,4 +172,6 @@ fn slurp_repos(chan: &'static DuplexStream<~str, ~str>) {
             }
         }
     }
+    chan.send(taskState.api_url.to_owned());
+    chan.send(taskState.json.to_owned());
 }
