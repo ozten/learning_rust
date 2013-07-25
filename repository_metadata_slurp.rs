@@ -14,6 +14,8 @@ use extra::json;
 use extra::json::{Object, List, String, Number};
 use extra::net::url::Url;
 use extra::net::url;
+use extra::timer::sleep;
+use extra::uv;
 
 use http_client::uv_http_request;
 use http_client::StatusCode;
@@ -94,89 +96,105 @@ struct TaskState {
 // over with the new api_url
 fn slurp_repos(chan: &DuplexStream<~str, ~str>) {
 
-    let taskState = @mut TaskState{api_url:chan.recv().to_owned(),
-            json: ~"", next_url: ~""};
+    let taskState = @mut TaskState{
+        api_url:chan.recv().to_owned(),
+        json: ~"",
+        next_url: ~""
+    };
 
-    // https://api.github.com/repositories
-    // http://ozten.com/random/sample.json
-    let u: Url = url::from_str(
-        taskState.api_url.replace("https://api.github.com", "http://localhost:8002")
-        ).get();
-    let mut options:HashMap<~str, ~str> = HashMap::new();
+    loop {
 
+        // https://api.github.com/repositories
+        // http://ozten.com/random/sample.json
+        let u: Url = url::from_str(
+            //http_client doesn't speak https, use a local proxy server
+            taskState.api_url.replace("https://api.github.com", "http://localhost:8002")
+            ).get();
+        debug!(u);
+        let mut options:HashMap<~str, ~str> = HashMap::new();
 
-    options.insert(~"User-Agent",
-                   ~"curl/7.21.4 (universal-apple-darwin11.0) libcurl/7.21.4 OpenSSL/0.9.8x zlib/1.2.5");
-    options.insert(~"Accept", ~"*/*");
-    // ~"curl/7.21.4 (universal-apple-darwin11.0) libcurl/7.21.4 OpenSSL/0.9.8x zlib/1.2.5"
+        // TODO make this ozten
+        options.insert(~"User-Agent",
+                       ~"ozten");
+        options.insert(~"Accept", ~"*/*");
 
+        let mut request = uv_http_request(u, options);
 
-    let mut request = uv_http_request(u, options);
+        let res = @mut RepoResponse{rawJson: ~[], inLinkField: false};
 
-    let res = @mut RepoResponse{rawJson: ~[], inLinkField: false};
+        do request.begin |event| {
+            match event {
+                http_client::Error(e) => {
+                    println(fmt!("Ouch... error %?", e));
+                },
+                http_client::Status(s) => match s {
+                    // TODO wait... how did I break how match works here
+                    // I should need the pattern guard.
+                    StatusOK if s == StatusOK => {
+                        println(fmt!("Status %?", s));
 
-    do request.begin |event| {
-        match event {
-            http_client::Error(e) => {
-                println(fmt!("Ouch... error %?", e));
-            },
-            http_client::Status(s) => match s {
-                // TODO wait... how did I break how match works here
-                // I should need the pattern guard.
-                StatusOK if s == StatusOK => {
-                    println(fmt!("Status %?", s));
+                        let api_url = taskState.api_url.clone();
+                        //TODO WTF? taskState.api_url = api_url;
+                        taskState.json = res.rawJson.concat();
 
-                    let api_url = taskState.api_url.clone();
-                    //TODO WTF? taskState.api_url = api_url;
-                    taskState.json = res.rawJson.concat();
-
-                    // TODO I don't need to parse Json here, actually...
-                    match json::from_str(res.rawJson.concat()) {
-                        Ok(json) => {
-                            readJson(json);
-                        }
-                        Err(e) => {
-                            println(fmt!("Error parsing JSON %?", e));
-                            fail!("Can't read JSON");
+                        // TODO I don't need to parse Json here, actually...
+                        match json::from_str(res.rawJson.concat()) {
+                            Ok(json) => {
+                                readJson(json);
+                            }
+                            Err(e) => {
+                                println(fmt!("Error parsing JSON %?", e));
+                                fail!("Can't read JSON");
+                            }
                         }
                     }
+                    StatusFound if s == StatusFound => {
+                        println(fmt!("Redirected? %?", s));
+                    }
+                    StatusUnknown => {
+                        println(fmt!("hmmm status is unknown %?", s));
+                        fail!("No JSON of Repositiories");
+                    }
+                },
+                http_client::HeaderField(field) => {
+                    let hField = str::from_bytes(field.take());
+                    match hField {
+                        ~"link" | ~"Link" => {
+                            res.inLinkField = true;
+                            println("We found link");
+                        },
+                        _ => ()
+                    }
+                },
+                http_client::HeaderValue(field) => {
+                    if (res.inLinkField) {
+                        res.inLinkField = false;
+                        let hValue = str::from_bytes(field.take());
+                        println("Queing up next page from ");
+                        let link:@~str = link_header::parse(hValue);
+                        //println(*link.replace("api.github.com", "localhost:8002"));
+                        // TODO add this to incoming next url
+                        taskState.next_url = link.to_owned();
+                    }
+                },
+                http_client::Payload(p) => {
+                    let data = p.take();
+                    res.rawJson.push(str::from_bytes(data));
                 }
-                StatusFound if s == StatusFound => {
-                    println(fmt!("Redirected? %?", s));
-                }
-                StatusUnknown => {
-                    println(fmt!("hmmm status is unknown %?", s));
-                    fail!("No JSON of Repositiories");
-                }
-            },
-            http_client::HeaderField(field) => {
-                let hField = str::from_bytes(field.take());
-                match hField {
-                    ~"link" | ~"Link" => {
-                        res.inLinkField = true;
-                        println("We found link");
-                    },
-                    _ => ()
-                }
-            },
-            http_client::HeaderValue(field) => {
-                if (res.inLinkField) {
-                    res.inLinkField = false;
-                    let hValue = str::from_bytes(field.take());
-                    println("Queing up next page from ");
-                    let link:@~str = link_header::parse(hValue);
-                    //println(*link.replace("api.github.com", "localhost:8002"));
-                    // TODO add this to incoming next url
-                    taskState.next_url = link.to_owned();
-                }
-            },
-            http_client::Payload(p) => {
-                let data = p.take();
-                res.rawJson.push(str::from_bytes(data));
             }
         }
+        chan.send(taskState.api_url.to_owned());
+        chan.send(taskState.json.to_owned());
+        chan.send(taskState.next_url.to_owned());
+        let nu = taskState.next_url.to_owned();
+
+        // Update state
+        taskState.api_url = taskState.next_url.to_owned();
+        taskState.json = ~"";
+        taskState.next_url = ~"";
+
+        debug!("Sleeping for a second to respect rate limiting");
+        // TODO measure time passed and wait the difference...
+        sleep(&uv::global_loop::get(), 1000);
     }
-    chan.send(taskState.api_url.to_owned());
-    chan.send(taskState.json.to_owned());
-    chan.send(taskState.next_url.to_owned());
 }

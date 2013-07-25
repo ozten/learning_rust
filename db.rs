@@ -27,7 +27,7 @@ static update_repo_meta:&'static str =
 
 static next_repo_url:&'static str =
     "SELECT url FROM repo_meta                \
-     WHERE next_url IS NULL AND json IS NULL  \
+     WHERE next_url IS NULL OR next_url == ''  \
      ORDER BY created DESC LIMIT 1;";
 
 fn setup(database: &Database) {
@@ -117,25 +117,16 @@ fn init_db(chan:&DuplexStream<~str, ~str>) -> () {
     };
     setup(&database);
     chan.send(next_url(&database));
+    loop {
+        debug!("DB: Waiting for data");
+        let current_url:&str = chan.recv();
+        let json:&str = chan.recv();
+        let next_url:&str = chan.recv();
 
-    debug!("I'll wait till I get a current_url");
-    let current_url:&str = chan.recv();
+        println(fmt!("Saving contents of %s, next up is %s",
+            current_url, next_url));
 
-    debug!("I'll wait till I get the json");
-    let json:&str = chan.recv();
-
-    debug!("I'll wait till I get a next_url");
-    let next_url:&str = chan.recv();
-    debug!(next_url);
-
-    //debug!(json);
-    debug!("Okay thenz");
-    update_json_repo_meta(&database, current_url, json, next_url);
-    debug!("Okay, let's insert the next url");
-    insert_next_url_repo_meta(&database, next_url);
-    debug!("Phew... All done.");
-    //loop {
-        // wait for read or writes to the database
-        // execute them
-    //}
+        update_json_repo_meta(&database, current_url, json, next_url);
+        insert_next_url_repo_meta(&database, next_url);
+    }
 }
